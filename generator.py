@@ -8,6 +8,8 @@ def main():
     file (e.g. _generated.py) and then run.
     """
 
+
+    #Algorithm goes here
     body = """
     for row in cur:
         if row['quant'] > 10:
