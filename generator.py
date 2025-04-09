@@ -1,6 +1,20 @@
 import subprocess
 
-
+#Reads the input and places them into a dictionary
+def getArgs(query):
+    #Query should be of type string
+    queryDict = {}
+    lines = query.strip().splitlines()
+    
+    for line in query:
+        line = line.strip
+        if len(line) == 0:
+            continue
+        if line == "SELECT ATTRIBUTE(S):":
+            line.split()
+            queryDict[attributes] =
+    
+    
 def main():
     """
     This is the generator code. It should take in the MF structure and generate the code
