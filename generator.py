@@ -1,5 +1,23 @@
 import subprocess
 
+def process_input(input):
+    args = {}
+    query = input.strip().readlines()
+    for line in query:
+        if line.startswith("SELECT ATTRIBUTE"):
+            args[s] = 
+        if line.startswith("NUMBER OF GROUPING VARIABLES"):
+            args[n] = 
+        if line.startswith("GROUPING ATTRIBUTES"):
+            args[v] =
+        if line.startswith("F-VECT"):
+            args[f] =
+        if line.startswith("SELECT CONDITION-VECT:"):
+            args[sigma] =
+        if line.startswith("HAVING_CONDITION"):
+            args[g] =
+    return args
+
 
 def main():
     """
