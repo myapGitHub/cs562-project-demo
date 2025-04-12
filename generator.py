@@ -27,20 +27,19 @@ def getArgsFile(query):
             queryDict['s'] = attribute_list 
 
         elif line.startswith("NUMBER OF GROUPING VARIABLES"):
-            current_key = "NUM_GROUPING_VARIABLES"
+
 
         elif line.startswith("GROUPING ATTRIBUTES"):
-            current_key = "GROUPING_ATTRIBUTES"
+
 
         elif line.startswith("F-VECT"):
-            current_key = "F_VECTOR"
+
 
         elif line.startswith("SELECT CONDITION-VECT"):
-            current_key = "SELECT_CONDITIONS"
-            queryDict[current_key] = {}
+
 
         elif line.startswith("HAVING_CONDITION"):
-            current_key = "HAVING_CONDITION"
+
 
         else: #If we are in a line with args FOR an operator
             continue
