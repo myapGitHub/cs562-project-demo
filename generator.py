@@ -1,18 +1,51 @@
 import subprocess
 
 #Reads the input and places them into a dictionary
-def getArgs(query):
-    #Query should be of type string
-    queryDict = {}
+def getArgsFile(query):
+    queryDict = {
+    's': [],  # SELECT ATTRIBUTE(S)
+    'n': 0,    # NUMBER OF GROUPING VARIABLES
+    'v': [],   # GROUPING ATTRIBUTES
+    'f': [],   # F-VECT
+    'sigma': [], # SELECT CONDITION-VECT
+    'g': ''    # HAVING CONDITION
+    }
     lines = query.strip().splitlines()
-    
-    for line in query:
-        line = line.strip
-        if len(line) == 0:
+
+    for line in lines: #Iterate thru the lines to get args
+        line = line.strip()
+        line_length = len(line)
+        if line_length == 0: #Line is empty, so go to next operator
             continue
-        if line == "SELECT ATTRIBUTE(S):":
-            line.split()
-            queryDict[attributes] =
+
+        if line.startswith("SELECT ATTRIBUTE"):
+            args = next(lines, None) 
+            attribute_list = []
+            if args: #If it is not empty
+                for attribute in args.split(','):
+                    attribute_list.append(attribute.strip())
+            queryDict['s'] = attribute_list 
+
+        elif line.startswith("NUMBER OF GROUPING VARIABLES"):
+            current_key = "NUM_GROUPING_VARIABLES"
+
+        elif line.startswith("GROUPING ATTRIBUTES"):
+            current_key = "GROUPING_ATTRIBUTES"
+
+        elif line.startswith("F-VECT"):
+            current_key = "F_VECTOR"
+
+        elif line.startswith("SELECT CONDITION-VECT"):
+            current_key = "SELECT_CONDITIONS"
+            queryDict[current_key] = {}
+
+        elif line.startswith("HAVING_CONDITION"):
+            current_key = "HAVING_CONDITION"
+
+        else: #If we are in a line with args FOR an operator
+            continue
+
+    return queryDict
     
     
 def main():
