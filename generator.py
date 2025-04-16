@@ -1,3 +1,5 @@
+import subprocess
+
 #Asks for query from user interactively to feed a string into getArgs()
 def getArgsManual():
     print("Input query: ")
@@ -97,10 +99,26 @@ def getArgs(query):
                 elif '.' in args:
                     idx, condition = args.strip().split('.', 1)
                     queryDict['sigma'][int(idx.strip())] = condition.strip().replace('’', "'")
-    print(queryDict)
+    #print(queryDict)
     return queryDict
 
     
+#Calculates the aggregate based on input
+def aggregateFunctions(aggregate):
+    result = 0
+    if aggregate.equals("max"):
+        pass
+    elif aggregate.equals("count"):
+        pass
+    elif aggregate.equals("avg"):
+        pass
+    elif aggregate.equals("min"):
+        pass
+    elif aggregate.equals("sum"):
+        pass
+    else: #Error, we work with the 5 aggregates we learned in class only
+        raise TypeError("Type of aggregate must be max, count, avg, min, or sum")
+    return result
     
 def main():
     """
@@ -121,7 +139,7 @@ def main():
             whileLoop = 0
 
 
-    #Process their input and store it into query. From a file, or manual, query will be a dictionary with FI operators as keys, and the corresponding value for each operator
+    #Process their input and store it into query. From a file, or manual, query will be a dictionary with FI operators as keys, and the corresponding value(s) for each operator
     if inputType == 1:
         filename = input("Please enter a valid textfile name that holds your query: ")
         f = open(filename,"r")
