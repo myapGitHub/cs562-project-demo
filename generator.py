@@ -149,7 +149,12 @@ def main():
         query = getArgsManual()
         
     #print(query)
-        
+      
+      
+    select_attrs = ", ".join(query['s']) if query['s'] else "*"
+    sql_query = f"SELECT {select_attrs} FROM sales"  
+    
+    
     #Algorithm goes here
     body = """
     for row in cur:
@@ -178,7 +183,7 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM sales")
+    cur.execute(\"\"\"{sql_query}\"\"\")
     
     _global = []
     {body}
