@@ -17,7 +17,7 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM sales")
+    cur.execute("""SELECT * FROM sales""")
     
     _global = []
     

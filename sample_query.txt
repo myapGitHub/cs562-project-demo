@@ -1,0 +1,2 @@
+select cust, state, quant
+from sales

@@ -130,7 +130,7 @@ def main():
     #Get input from user to ask whether they want to use a file or manually input the query
     whileLoop = 1
     while(whileLoop):
-        inputType = input("Please indicate whether you would like you input the query using a file(0) or as manual input(1).\n")
+        inputType = input("Please indicate whether you would like you input the query using manual input(0) or a file(1).\n")
         #print(inputType)
         inputType = int(inputType)
         if inputType != 1 and inputType != 0:
@@ -142,8 +142,7 @@ def main():
     #Process their input and store it into query. From a file, or manual, query will be a dictionary with FI operators as keys, and the corresponding value(s) for each operator
     if inputType == 1:
         filename = input("Please enter a valid textfile name that holds your query: ")
-        f = open(filename,"r")
-        query = getArgsFromFile(f)
+        query = getArgsFromFile(filename)
         
     if inputType == 0:
         query = getArgsManual()
