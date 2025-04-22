@@ -1,2 +1,11 @@
-select cust, state, quant
-from sales
+SELECT ATTRIBUTE(S):
+cust, prod, avg(quant), max(quant)
+NUMBER OF GROUPING VARIABLES(n):
+0
+GROUPING ATTRIBUTES(V):
+cust, prod
+F-VECT([F]):
+avg_quant, max_quant
+SELECT CONDITION-VECT([sigma]):
+
+HAVING CONDITION(G):

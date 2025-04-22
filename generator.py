@@ -98,27 +98,10 @@ def getArgs(query):
                     break
                 elif '.' in args:
                     idx, condition = args.strip().split('.', 1)
-                    queryDict['sigma'][int(idx.strip())] = condition.strip().replace('’', "'")
+                    queryDict['sigma'][int(idx.strip())] = condition.strip().replace("'''", "'")
     #print(queryDict)
     return queryDict
 
-    
-#Calculates the aggregate based on input
-def aggregateFunctions(aggregate):
-    result = 0
-    if aggregate.equals("max"):
-        pass
-    elif aggregate.equals("count"):
-        pass
-    elif aggregate.equals("avg"):
-        pass
-    elif aggregate.equals("min"):
-        pass
-    elif aggregate.equals("sum"):
-        pass
-    else: #Error, we work with the 5 aggregates we learned in class only
-        raise TypeError("Type of aggregate must be max, count, avg, min, or sum")
-    return result
     
 def main():
     """
@@ -148,18 +131,57 @@ def main():
         query = getArgsManual()
         
     #print(query)
-      
-      
-    select_attrs = ", ".join(query['s']) if query['s'] else "*"
-    sql_query = f"SELECT {select_attrs} FROM sales"  
-    
-    
+
+    #Group grouping attributes into for each row, so it would look like row['cust'] for example for group by cust
+    group_attrs = query['v']
+    gv_key = ", ".join([f"row['{attr}']" for attr in group_attrs])
+
     #Algorithm goes here
-    body = """
+    body = f"""
+
+    #Create mf structure
+    groups = {{}} 
+
+    #Go thru each row of the table
     for row in cur:
-        if row['quant'] > 10:
-            _global.append(row)
+        #Establish a key based on the grouping variables
+        key = ({gv_key})
+        
+        #If first time running into the key, initialize it
+        #Since we are temporarily generating a program to fulfill the sample query, quant_sum,count, and max are hardcoded
+        if key not in groups:
+            groups[key] = {{
+                {', '.join([f"'{attr}': row['{attr}']" for attr in group_attrs])},
+                'quant_sum': 0,  
+                'count': 0,      
+                'max_quant': 0
+            }}
+        
+        #Update aggregate values
+        groups[key]['quant_sum'] += row['quant']
+        groups[key]['count'] += 1
+        groups[key]['max_quant'] = max(groups[key]['max_quant'], row['quant'])
+
+    #Convert mf structure to table
+    result = []
+    for key, group_data in groups.items():
+        if group_data['count'] > 0:
+            avg_quant = group_data['quant_sum'] / group_data['count'] 
+        else:
+            avg_quant = 0
+        
+        #Create row with specified cols
+        result_row = {{
+            {', '.join([f"'{attr}': group_data['{attr}']" for attr in group_attrs])},
+            'avg(quant)': avg_quant,
+            'max(quant)': group_data['max_quant']
+        }}
+        result.append(result_row)
+
+    _global = result
     """
+
+
 
     # Note: The f allows formatting with variables.
     #       Also, note the indentation is preserved.
@@ -182,7 +204,7 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute(\"\"\"{sql_query}\"\"\")
+    cur.execute("SELECT * FROM sales")
     
     _global = []
     {body}
@@ -198,7 +220,9 @@ if "__main__" == __name__:
     """
 
     # Write the generated code to a file
-    open("_generated.py", "w").write(tmp)
+    with open("_generated.py", "w") as f:
+        f.write(tmp)
+    
     # Execute the generated code
     subprocess.run(["python", "_generated.py"])
 

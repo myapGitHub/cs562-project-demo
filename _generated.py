@@ -17,13 +17,46 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute("""SELECT * FROM sales""")
+    cur.execute("SELECT * FROM sales")
     
     _global = []
     
+    # Create the mf-structure to store groups and their aggregates
+    groups = {}  # This will be our mf-structure
+
+    # Process each row from the database
     for row in cur:
-        if row['quant'] > 10:
-            _global.append(row)
+        # Create the grouping key
+        key = (row['cust'], row['prod'])
+        
+        # If this group doesn't exist yet, initialize it
+        if key not in groups:
+            groups[key] = {
+                'cust': row['cust'],
+            'prod': row['prod'],
+            'avg(quant)_sum': 0,  # For sum of quant
+            'avg(quant)_count': 0,  # For count of quant
+            'max(quant)': float('-inf'),  # For max of quant
+        }
+        
+        # Update the aggregate values for this group
+            groups[key]['avg(quant)_sum'] += row['quant']
+        groups[key]['avg(quant)_count'] += 1
+        groups[key]['max(quant)'] = max(groups[key]['max(quant)'], row['quant'])
+
+    # Convert the mf-structure to result rows with computed aggregates
+    result = []
+    for key, group_data in groups.items():
+        # Create a result row with the requested columns
+        result_row = {
+                'cust': group_data['cust'],
+            'prod': group_data['prod'],
+            'avg(quant)': group_data['avg(quant)_sum'] / group_data['avg(quant)_count'] if group_data['avg(quant)_count'] > 0 else 0,
+            'max(quant)': group_data['max(quant)'],
+        }
+        result.append(result_row)
+
+    _global = result
     
     
     return tabulate.tabulate(_global,
