@@ -27,26 +27,26 @@ def query():
         key = (row['cust'])
         
         # Check all grouping variable conditions
-        match_1 = state='NY'; match_2 = state='NJ'
+        match_1 = True
         
         if key not in groups:
             groups[key] = {
                 'cust': row['cust'],
-                '1_sum_quant': 0, '2_sum_quant': 0
+                '1_sum_quant': 0
             }
         
         # Update aggregates for matching conditions
-        if match_1: groups[key]['1_sum_quant'] += row['quant']; if match_2: groups[key]['2_sum_quant'] += row['quant']
+        if match_1: groups[key]['1_sum_quant'] += row['quant']
     
     # Prepare results
     result = []
     for key, group_data in groups.items():
         result_row = {
             'cust': group_data['cust'],
-            '1_sum_quant': group_data['1_sum_quant'], '2_sum_quant': group_data['2_sum_quant']
+            'sum_quant': group_data['1_sum_quant']
         }
         # Apply HAVING clause
-        if 1_sum_quant > 2_sum_quant:
+        if True:
             result.append(result_row)
     
     _global = result

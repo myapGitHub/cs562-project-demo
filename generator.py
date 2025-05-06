@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 #Asks for query from user interactively to feed a string into getArgs()
 def getArgsManual():
@@ -110,7 +111,8 @@ def generate_mf_body(query):
                 f"'{agg}': group_data['{agg}_sum']/group_data['{agg}_count'] if group_data['{agg}_count']>0 else 0"
             )
         else:
-            output_code.append(f"'{agg}': group_data['{agg}']")
+            output_code.append(f"'{agg.split("_", 1)[1]}': group_data['{agg}']")
+    
     
     # Build the complete body
     body = f"""
@@ -129,7 +131,7 @@ def generate_mf_body(query):
             }}
         
         # Update aggregates for matching conditions
-        {'; '.join(update_code)}
+        {'\n    '.join(update_code)}
     
     # Prepare results
     result = []
@@ -221,14 +223,17 @@ def getArgs(query):
                 elif args.strip().startswith("HAVING_CONDITION"):
                     args = next(lines, None)
                     if args and len(args) > 0:
-                        queryDict['g'] = args.strip()
+                        # Convert 1_sum_quant to group_data["1_sum_quant"]
+                        having = args.strip()
+                        # This regex matches all aggregate references (digits_letters)
+                        having = re.sub(r'(\d+_\w+)', r'group_data["\1"]', having)
+                        queryDict['g'] = having
                     else:
                         queryDict['g'] = ''
                     break
                 elif '.' in args:
                     idx, condition = args.strip().split('.', 1)
-                    queryDict['sigma'][int(idx.strip())] = condition.strip().replace("'''", "'")
-    #print(queryDict)
+                    queryDict['sigma'][int(idx.strip())] = condition.strip().replace("'''", "'")    #print(queryDict)
     return queryDict
 
 
