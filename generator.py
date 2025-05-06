@@ -2,14 +2,44 @@ import subprocess
 
 #Asks for query from user interactively to feed a string into getArgs()
 def getArgsManual():
-    print("Input query: ")
-    user_input = []
+    print("\nPlease enter your query parameters one by one (press Enter after each):")
+    query_lines = []
+    
+    # SELECT ATTRIBUTES
+    print("\nEnter SELECT ATTRIBUTES (comma separated, e.g., cust,prod,1_sum_quant):")
+    query_lines.append("SELECT ATTRIBUTE(S):")
+    query_lines.append(input().strip())
+    
+    # NUMBER OF GROUPING VARIABLES
+    print("\nEnter NUMBER OF GROUPING VARIABLES (e.g., 2):")
+    query_lines.append("NUMBER OF GROUPING VARIABLES(n):")
+    query_lines.append(input().strip())
+    
+    # GROUPING ATTRIBUTES
+    print("\nEnter GROUPING ATTRIBUTES (comma separated, e.g., cust,prod):")
+    query_lines.append("GROUPING ATTRIBUTES(V):")
+    query_lines.append(input().strip())
+    
+    # F-VECT
+    print("\nEnter F-VECT (comma separated, e.g., 1_sum_quant,2_avg_quant):")
+    query_lines.append("F-VECT([F]):")
+    query_lines.append(input().strip())
+    
+    # SELECT CONDITION-VECT
+    print("\nEnter SELECT CONDITION-VECT (one per line, format like 1.state='NY', enter blank to finish):")
+    query_lines.append("SELECT CONDITION-VECT([σ]):")
     while True:
-        line = input()
-        if line.strip() == '':
+        line = input().strip()
+        if not line:
             break
-        user_input.append(line)
-    return getArgs("\n".join(user_input))
+        query_lines.append(line)
+    
+    # HAVING CONDITION
+    print("\nEnter HAVING CONDITION (e.g., 1_sum_quant > 1000):")
+    query_lines.append("HAVING_CONDITION(G):")
+    query_lines.append(input().strip())
+    
+    return getArgs("\n".join(query_lines))
 
 #Asks for query from user via file to feed the contents into getArgs()
 def getArgsFromFile(filename):
@@ -17,6 +47,105 @@ def getArgsFromFile(filename):
     with open(filename, 'r') as file:
         contents = file.read()
     return getArgs(contents)
+
+def generate_mf_body(query):
+    group_attrs = query['v']
+    gv_key = ", ".join([f"row['{attr}']" for attr in group_attrs])
+    
+    # Parse grouping variable conditions (sigma)
+    condition_checks = []
+    for gv in range(1, query['n'] + 1):
+        condition = query['sigma'].get(gv, "True")
+        condition_checks.append(f"match_{gv} = {condition}")
+    
+    # Parse all aggregate functions
+    aggregates = {}
+    for agg in query['f']:
+        gv, agg_type, attr = agg.split('_')
+        gv = int(gv)
+        aggregates[agg] = {'gv': gv, 'type': agg_type, 'attr': attr}
+    
+    # Generate initialization code
+    init_code = []
+    for agg, params in aggregates.items():
+        if params['type'] == 'sum':
+            init_code.append(f"'{agg}': 0")
+        elif params['type'] == 'count':
+            init_code.append(f"'{agg}': 0")
+        elif params['type'] == 'avg':
+            init_code.extend([f"'{agg}_sum': 0", f"'{agg}_count': 0"])
+        elif params['type'] == 'max':
+            init_code.append(f"'{agg}': float('-inf')")
+        elif params['type'] == 'min':
+            init_code.append(f"'{agg}': float('inf')")
+    
+    # Generate update code
+    update_code = []
+    for agg, params in aggregates.items():
+        attr = params['attr']
+        gv = params['gv']
+        if params['type'] == 'sum':
+            update_code.append(f"if match_{gv}: groups[key]['{agg}'] += row['{attr}']")
+        elif params['type'] == 'count':
+            update_code.append(f"if match_{gv}: groups[key]['{agg}'] += 1")
+        elif params['type'] == 'avg':
+            update_code.extend([
+                f"if match_{gv}: groups[key]['{agg}_sum'] += row['{attr}']",
+                f"if match_{gv}: groups[key]['{agg}_count'] += 1"
+            ])
+        elif params['type'] == 'max':
+            update_code.append(
+                f"if match_{gv}: groups[key]['{agg}'] = max(groups[key]['{agg}'], row['{attr}'])"
+            )
+        elif params['type'] == 'min':
+            update_code.append(
+                f"if match_{gv}: groups[key]['{agg}'] = min(groups[key]['{agg}'], row['{attr}'])"
+            )
+    
+    # Generate output code
+    output_code = []
+    for agg, params in aggregates.items():
+        if params['type'] == 'avg':
+            output_code.append(
+                f"'{agg}': group_data['{agg}_sum']/group_data['{agg}_count'] if group_data['{agg}_count']>0 else 0"
+            )
+        else:
+            output_code.append(f"'{agg}': group_data['{agg}']")
+    
+    # Build the complete body
+    body = f"""
+    groups = {{}}
+    
+    for row in cur:
+        key = ({gv_key})
+        
+        # Check all grouping variable conditions
+        {'; '.join(condition_checks)}
+        
+        if key not in groups:
+            groups[key] = {{
+                {', '.join([f"'{attr}': row['{attr}']" for attr in group_attrs])},
+                {', '.join(init_code)}
+            }}
+        
+        # Update aggregates for matching conditions
+        {'; '.join(update_code)}
+    
+    # Prepare results
+    result = []
+    for key, group_data in groups.items():
+        result_row = {{
+            {', '.join([f"'{attr}': group_data['{attr}']" for attr in group_attrs])},
+            {', '.join(output_code)}
+        }}
+        # Apply HAVING clause
+        if {query['g'] if query['g'] else 'True'}:
+            result.append(result_row)
+    
+    _global = result
+    """
+    return body
+
 
 #Reads the input and places them into a dictionary
 def getArgs(query):
@@ -102,7 +231,7 @@ def getArgs(query):
     #print(queryDict)
     return queryDict
 
-    
+
 def main():
     """
     This is the generator code. It should take in the MF structure and generate the code
@@ -129,58 +258,59 @@ def main():
         
     if inputType == 0:
         query = getArgsManual()
-        
-    #print(query)
 
     #Group grouping attributes into for each row, so it would look like row['cust'] for example for group by cust
     group_attrs = query['v']
     gv_key = ", ".join([f"row['{attr}']" for attr in group_attrs])
 
     #Algorithm goes here
-    body = f"""
+    if query['n'] == 0:
+        body = f"""
 
-    #Create mf structure
-    groups = {{}} 
+        #Create mf structure
+        groups = {{}} 
 
-    #Go thru each row of the table
-    for row in cur:
-        #Establish a key based on the grouping variables
-        key = ({gv_key})
-        
-        #If first time running into the key, initialize it
-        #Since we are temporarily generating a program to fulfill the sample query, quant_sum,count, and max are hardcoded
-        if key not in groups:
-            groups[key] = {{
-                {', '.join([f"'{attr}': row['{attr}']" for attr in group_attrs])},
-                'quant_sum': 0,  
-                'count': 0,      
-                'max_quant': 0
+        #Go thru each row of the table
+        for row in cur:
+            #Establish a key based on the grouping variables
+            key = ({gv_key})
+            
+            #If first time running into the key, initialize it
+            #Since we are temporarily generating a program to fulfill the sample query, quant_sum,count, and max are hardcoded
+            if key not in groups:
+                groups[key] = {{
+                    {', '.join([f"'{attr}': row['{attr}']" for attr in group_attrs])},
+                    'quant_sum': 0,  
+                    'count': 0,      
+                    'max_quant': 0
+                }}
+            
+            #Update aggregate values
+            groups[key]['quant_sum'] += row['quant']
+            groups[key]['count'] += 1
+            groups[key]['max_quant'] = max(groups[key]['max_quant'], row['quant'])
+
+        #Convert mf structure to table
+        result = []
+        for key, group_data in groups.items():
+            if group_data['count'] > 0:
+                avg_quant = group_data['quant_sum'] / group_data['count'] 
+            else:
+                avg_quant = 0
+            
+            #Create row with specified cols
+            result_row = {{
+                {', '.join([f"'{attr}': group_data['{attr}']" for attr in group_attrs])},
+                'avg(quant)': avg_quant,
+                'max(quant)': group_data['max_quant']
             }}
-        
-        #Update aggregate values
-        groups[key]['quant_sum'] += row['quant']
-        groups[key]['count'] += 1
-        groups[key]['max_quant'] = max(groups[key]['max_quant'], row['quant'])
+            result.append(result_row)
 
-    #Convert mf structure to table
-    result = []
-    for key, group_data in groups.items():
-        if group_data['count'] > 0:
-            avg_quant = group_data['quant_sum'] / group_data['count'] 
-        else:
-            avg_quant = 0
-        
-        #Create row with specified cols
-        result_row = {{
-            {', '.join([f"'{attr}': group_data['{attr}']" for attr in group_attrs])},
-            'avg(quant)': avg_quant,
-            'max(quant)': group_data['max_quant']
-        }}
-        result.append(result_row)
-
-    _global = result
-    """
-
+        _global = result
+        """
+    else:
+        # Generate the body of the MF code
+        body = generate_mf_body(query)
 
 
     # Note: The f allows formatting with variables.

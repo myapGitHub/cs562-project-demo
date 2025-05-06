@@ -21,41 +21,34 @@ def query():
     
     _global = []
     
-    # Create the mf-structure to store groups and their aggregates
-    groups = {}  # This will be our mf-structure
-
-    # Process each row from the database
+    groups = {}
+    
     for row in cur:
-        # Create the grouping key
-        key = (row['cust'], row['prod'])
+        key = (row['cust'])
         
-        # If this group doesn't exist yet, initialize it
+        # Check all grouping variable conditions
+        match_1 = state='NY'; match_2 = state='NJ'
+        
         if key not in groups:
             groups[key] = {
                 'cust': row['cust'],
-            'prod': row['prod'],
-            'avg(quant)_sum': 0,  # For sum of quant
-            'avg(quant)_count': 0,  # For count of quant
-            'max(quant)': float('-inf'),  # For max of quant
-        }
+                '1_sum_quant': 0, '2_sum_quant': 0
+            }
         
-        # Update the aggregate values for this group
-            groups[key]['avg(quant)_sum'] += row['quant']
-        groups[key]['avg(quant)_count'] += 1
-        groups[key]['max(quant)'] = max(groups[key]['max(quant)'], row['quant'])
-
-    # Convert the mf-structure to result rows with computed aggregates
+        # Update aggregates for matching conditions
+        if match_1: groups[key]['1_sum_quant'] += row['quant']; if match_2: groups[key]['2_sum_quant'] += row['quant']
+    
+    # Prepare results
     result = []
     for key, group_data in groups.items():
-        # Create a result row with the requested columns
         result_row = {
-                'cust': group_data['cust'],
-            'prod': group_data['prod'],
-            'avg(quant)': group_data['avg(quant)_sum'] / group_data['avg(quant)_count'] if group_data['avg(quant)_count'] > 0 else 0,
-            'max(quant)': group_data['max(quant)'],
+            'cust': group_data['cust'],
+            '1_sum_quant': group_data['1_sum_quant'], '2_sum_quant': group_data['2_sum_quant']
         }
-        result.append(result_row)
-
+        # Apply HAVING clause
+        if 1_sum_quant > 2_sum_quant:
+            result.append(result_row)
+    
     _global = result
     
     
