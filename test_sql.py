@@ -51,3 +51,11 @@ HAVING
     AVG(CASE WHEN state='NY' THEN quant ELSE NULL END) > AVG(CASE WHEN state='CT' THEN quant ELSE NULL END)
 """)
 
+
+run_sql_query("""
+SELECT cust, prod, SUM(quant) AS sum_quant
+FROM sales
+WHERE year = 2016
+GROUP BY cust, prod
+HAVING SUM(quant) > 500
+""")

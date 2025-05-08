@@ -59,12 +59,30 @@ def generate_mf_body(query):
     for i in range(1, len(query['f']) + 1):
         if i in sigma:
             condition = sigma[i]
-            # Convert 1.state='NY' to match_1 = row['state'] == 'NY'
-            edited_condition = "row['" + condition.split("=")[0] + "'] == "  + condition.split("=")[1]
-            corresponding_names.append(condition.split("=")[1].replace("'", "").lower())
-            match_conditions.append(f"match_{i} = {edited_condition}")
-    
+            # Split the condition into individual parts if it contains AND
+            if ' AND ' in condition:
+                sub_conditions = condition.split(' AND ')
 
+                processed_conditions = []
+                for sub_condition in sub_conditions:
+                    print(f"Processing sub-condition: {sub_condition}")
+                    processed_conditions.append("row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1])
+                    print(f"Processed condition: {processed_conditions}")
+                    corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
+                # Combine all sub-conditions with AND
+                combined_condition = " and ".join(processed_conditions)
+                match_conditions.append(f"match_{i} = {combined_condition}")
+                print(match_conditions)
+
+            else:
+                processed_conditions = "row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1]
+                corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
+                match_conditions.append(f"match_{i} = {processed_conditions}")
+                print(match_conditions)
+        
+
+
+    
     # Parse all aggregate functions
     aggregates = {}
     for agg in query['f']:

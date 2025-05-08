@@ -24,36 +24,28 @@ def query():
     groups = {}
     
     for row in cur:
-        key = (row['cust'])
+        key = (row['state'])
         
         # Check all grouping variable conditions
-        match_1 = row['state'] == 'NY'; match_2 = row['state'] == 'NJ'; match_3 = row['state'] == 'CT'
+        match_1 = row['prod']=='Jelly' and row['year']==2020
         if key not in groups:
             groups[key] = {
-                'cust': row['cust'],
-                '1_sum_quant': 0, '1_avg_quant_sum': 0, '1_avg_quant_count': 0, '2_sum_quant': 0, '3_sum_quant': 0, '3_avg_quant_sum': 0, '3_avg_quant_count': 0
+                'state': row['state'],
+                '1_max_quant': float('-inf')
             }
         
         # Update aggregates
-        groups[key]['1_sum_quant'] += row['quant'] if match_1 else 0
-        groups[key]['1_avg_quant_sum'] += row['quant'] if match_1 else 0
-        groups[key]['1_avg_quant_count'] += 1 if match_1 else 0
-        groups[key]['1_avg_quant'] = groups[key]['1_avg_quant_sum'] / groups[key]['1_avg_quant_count'] if groups[key]['1_avg_quant_count'] > 0 else 0
-        groups[key]['2_sum_quant'] += row['quant'] if match_2 else 0
-        groups[key]['3_sum_quant'] += row['quant'] if match_3 else 0
-        groups[key]['3_avg_quant_sum'] += row['quant'] if match_3 else 0
-        groups[key]['3_avg_quant_count'] += 1 if match_3 else 0
-        groups[key]['3_avg_quant'] = groups[key]['3_avg_quant_sum'] / groups[key]['3_avg_quant_count'] if groups[key]['3_avg_quant_count'] > 0 else 0
+        if match_1: groups[key]['1_max_quant'] = max(groups[key]['1_max_quant'], row['quant'])
     
     # Prepare results
     result = []
     for key, group_data in groups.items():
         result_row = {
-            'cust': group_data['cust'],
-            'sum_quant_ny': group_data['1_sum_quant'], 'avg_quant_ny': group_data['1_avg_quant_sum']/group_data['1_avg_quant_count'] if group_data['1_avg_quant_count']>0 else 0, 'sum_quant_nj': group_data['2_sum_quant'], 'sum_quant_ct': group_data['3_sum_quant'], 'avg_quant_ct': group_data['3_avg_quant_sum']/group_data['3_avg_quant_count'] if group_data['3_avg_quant_count']>0 else 0
+            'state': group_data['state'],
+            'max_quant_jelly': group_data['1_max_quant']
         }
         # Apply HAVING clause
-        if group_data["1_sum_quant"] > 2 * group_data["2_sum_quant"] or group_data["1_avg_quant"] > group_data["3_avg_quant"]:
+        if True:
             result.append(result_row)
     
     _global = result
