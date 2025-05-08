@@ -31,32 +31,23 @@ def run_sql_query(query):
         print(f"Error executing query: {e}")
         return None
 
-# Test Case 1
+
 print("\nTest Case 1: Basic Filtered Aggregation")
 run_sql_query("""
-SELECT cust, SUM(quant) AS sum_quant
-FROM sales
-WHERE state = 'NY'
-GROUP BY cust
-HAVING SUM(quant) > 1000
+SELECT 
+    cust,
+    SUM(CASE WHEN state='NY' THEN quant ELSE 0 END) AS sum_quant_NY,
+    AVG(CASE WHEN state='NY' THEN quant ELSE NULL END) AS avg_quant_NY,
+    SUM(CASE WHEN state='NJ' THEN quant ELSE 0 END) AS sum_quant_NJ,
+    SUM(CASE WHEN state='CT' THEN quant ELSE 0 END) AS sum_quant_CT,
+    AVG(CASE WHEN state='CT' THEN quant ELSE NULL END) AS avg_quant_CT
+FROM 
+    sales
+GROUP BY 
+    cust
+HAVING 
+    SUM(CASE WHEN state='NY' THEN quant ELSE 0 END) > 2 * SUM(CASE WHEN state='NJ' THEN quant ELSE 0 END)
+    OR 
+    AVG(CASE WHEN state='NY' THEN quant ELSE NULL END) > AVG(CASE WHEN state='CT' THEN quant ELSE NULL END)
 """)
 
-# Test Case 2
-print("\nTest Case 2: Average with Filter")
-run_sql_query("""
-SELECT prod, AVG(quant) AS avg_quant
-FROM sales
-WHERE year = 2023
-GROUP BY prod
-HAVING AVG(quant) > 50
-""")
-
-# Test Case 3
-print("\nTest Case 3: Count Distinct Products")
-run_sql_query("""
-SELECT cust, COUNT(DISTINCT prod) AS count_prod
-FROM sales
-WHERE month = 12
-GROUP BY cust
-HAVING COUNT(DISTINCT prod) >= 3
-""")

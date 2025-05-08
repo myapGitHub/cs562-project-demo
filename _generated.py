@@ -27,26 +27,33 @@ def query():
         key = (row['cust'])
         
         # Check all grouping variable conditions
-        match_1 = True
-        
+        match_1 = row['state'] == 'NY'; match_2 = row['state'] == 'NJ'; match_3 = row['state'] == 'CT'
         if key not in groups:
             groups[key] = {
                 'cust': row['cust'],
-                '1_sum_quant': 0
+                '1_sum_quant': 0, '1_avg_quant_sum': 0, '1_avg_quant_count': 0, '2_sum_quant': 0, '3_sum_quant': 0, '3_avg_quant_sum': 0, '3_avg_quant_count': 0
             }
         
-        # Update aggregates for matching conditions
-        if match_1: groups[key]['1_sum_quant'] += row['quant']
+        # Update aggregates
+        groups[key]['1_sum_quant'] += row['quant'] if match_1 else 0
+        groups[key]['1_avg_quant_sum'] += row['quant'] if match_1 else 0
+        groups[key]['1_avg_quant_count'] += 1 if match_1 else 0
+        groups[key]['1_avg_quant'] = groups[key]['1_avg_quant_sum'] / groups[key]['1_avg_quant_count'] if groups[key]['1_avg_quant_count'] > 0 else 0
+        groups[key]['2_sum_quant'] += row['quant'] if match_2 else 0
+        groups[key]['3_sum_quant'] += row['quant'] if match_3 else 0
+        groups[key]['3_avg_quant_sum'] += row['quant'] if match_3 else 0
+        groups[key]['3_avg_quant_count'] += 1 if match_3 else 0
+        groups[key]['3_avg_quant'] = groups[key]['3_avg_quant_sum'] / groups[key]['3_avg_quant_count'] if groups[key]['3_avg_quant_count'] > 0 else 0
     
     # Prepare results
     result = []
     for key, group_data in groups.items():
         result_row = {
             'cust': group_data['cust'],
-            'sum_quant': group_data['1_sum_quant']
+            'sum_quant_ny': group_data['1_sum_quant'], 'avg_quant_ny': group_data['1_avg_quant_sum']/group_data['1_avg_quant_count'] if group_data['1_avg_quant_count']>0 else 0, 'sum_quant_nj': group_data['2_sum_quant'], 'sum_quant_ct': group_data['3_sum_quant'], 'avg_quant_ct': group_data['3_avg_quant_sum']/group_data['3_avg_quant_count'] if group_data['3_avg_quant_count']>0 else 0
         }
         # Apply HAVING clause
-        if True:
+        if group_data["1_sum_quant"] > 2 * group_data["2_sum_quant"] or group_data["1_avg_quant"] > group_data["3_avg_quant"]:
             result.append(result_row)
     
     _global = result

@@ -53,18 +53,31 @@ def generate_mf_body(query):
     group_attrs = query['v']
     gv_key = ", ".join([f"row['{attr}']" for attr in group_attrs])
     
-    # Parse grouping variable conditions (sigma)
-    condition_checks = []
-    for gv in range(1, query['n'] + 1):
-        condition = query['sigma'].get(gv, "True")
-        condition_checks.append(f"match_{gv} = {condition}")
+    sigma = query['sigma']
+    corresponding_names = []
+    match_conditions = []
+    for i in range(1, len(query['f']) + 1):
+        if i in sigma:
+            condition = sigma[i]
+            # Convert 1.state='NY' to match_1 = row['state'] == 'NY'
+            edited_condition = "row['" + condition.split("=")[0] + "'] == "  + condition.split("=")[1]
+            corresponding_names.append(condition.split("=")[1].replace("'", "").lower())
+            match_conditions.append(f"match_{i} = {edited_condition}")
     
+
     # Parse all aggregate functions
     aggregates = {}
     for agg in query['f']:
-        gv, agg_type, attr = agg.split('_')
-        gv = int(gv)
-        aggregates[agg] = {'gv': gv, 'type': agg_type, 'attr': attr}
+        parts = agg.split('_')
+        if len(parts) == 3:  # Format: gv_agg_attr
+            gv, agg_type, attr = parts
+            gv = int(gv)
+            display_name = f"{agg_type}_{attr}_{corresponding_names[gv - 1]}"  # Format: sum(quant)
+            aggregates[agg] = {'gv': gv, 'type': agg_type, 'attr': attr, 'display': display_name}
+        else:  # Handle other formats if needed
+            gv, agg_type, attr = parts
+            gv = int(gv)
+            aggregates[agg] = {'gv': gv, 'type': agg_type, 'attr': attr, 'display': agg}
     
     # Generate initialization code
     init_code = []
@@ -86,13 +99,15 @@ def generate_mf_body(query):
         attr = params['attr']
         gv = params['gv']
         if params['type'] == 'sum':
-            update_code.append(f"if match_{gv}: groups[key]['{agg}'] += row['{attr}']")
+            update_code.append(f"groups[key]['{agg}'] += row['{attr}'] if match_{gv} else 0")
         elif params['type'] == 'count':
-            update_code.append(f"if match_{gv}: groups[key]['{agg}'] += 1")
+            update_code.append(f"groups[key]['{agg}'] += 1 if match_{gv} else 0")
         elif params['type'] == 'avg':
             update_code.extend([
-                f"if match_{gv}: groups[key]['{agg}_sum'] += row['{attr}']",
-                f"if match_{gv}: groups[key]['{agg}_count'] += 1"
+                f"groups[key]['{agg}_sum'] += row['{attr}'] if match_{gv} else 0",
+                f"groups[key]['{agg}_count'] += 1 if match_{gv} else 0",
+                # Calculate the average explicitly
+                f"groups[key]['{agg}'] = groups[key]['{agg}_sum'] / groups[key]['{agg}_count'] if groups[key]['{agg}_count'] > 0 else 0"
             ])
         elif params['type'] == 'max':
             update_code.append(
@@ -103,16 +118,17 @@ def generate_mf_body(query):
                 f"if match_{gv}: groups[key]['{agg}'] = min(groups[key]['{agg}'], row['{attr}'])"
             )
     
-    # Generate output code
+    
+    # Generate output code with proper display names
     output_code = []
     for agg, params in aggregates.items():
         if params['type'] == 'avg':
             output_code.append(
-                f"'{agg}': group_data['{agg}_sum']/group_data['{agg}_count'] if group_data['{agg}_count']>0 else 0"
+                f"'{params['display']}': group_data['{agg}_sum']/group_data['{agg}_count'] if group_data['{agg}_count']>0 else 0"
             )
         else:
-            output_code.append(f"'{agg.split("_", 1)[1]}': group_data['{agg}']")
-    
+            # Use the display name instead of the raw aggregate name
+            output_code.append(f"'{params['display']}': group_data['{agg}']")
     
     # Build the complete body
     body = f"""
@@ -122,16 +138,15 @@ def generate_mf_body(query):
         key = ({gv_key})
         
         # Check all grouping variable conditions
-        {'; '.join(condition_checks)}
-        
+        {'; '.join(match_conditions)}
         if key not in groups:
             groups[key] = {{
                 {', '.join([f"'{attr}': row['{attr}']" for attr in group_attrs])},
                 {', '.join(init_code)}
             }}
         
-        # Update aggregates for matching conditions
-        {'\n    '.join(update_code)}
+        # Update aggregates
+        {'\n        '.join(update_code)}
     
     # Prepare results
     result = []
