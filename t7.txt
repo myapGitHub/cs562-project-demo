@@ -1,0 +1,12 @@
+SELECT ATTRIBUTE(S):
+cust, state, 1_sum_quant
+NUMBER OF GROUPING VARIABLES(n):
+1
+GROUPING ATTRIBUTES(V):
+cust, state
+F-VECT([F]):
+1_sum_quant
+SELECT CONDITION-VECT([σ]):
+1.prod='Butter' or prod='Ice'
+HAVING_CONDITION(G):
+1_sum_quant > 300

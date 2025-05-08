@@ -1,0 +1,11 @@
+SELECT ATTRIBUTE(S):
+cust, prod, sum(quant)
+NUMBER OF GROUPING VARIABLES(n):
+0
+GROUPING ATTRIBUTES(V):
+cust, prod
+F-VECT([F]):
+sum(quant)
+SELECT CONDITION-VECT([σ]):
+HAVING_CONDITION(G):
+sum(quant) > 500

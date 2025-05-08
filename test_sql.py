@@ -32,7 +32,7 @@ def run_sql_query(query):
         return None
 
 
-print("\nTest Case 1: Basic Filtered Aggregation")
+print("\nAssignment Example")
 run_sql_query("""
 SELECT 
     cust,
@@ -51,11 +51,83 @@ HAVING
     AVG(CASE WHEN state='NY' THEN quant ELSE NULL END) > AVG(CASE WHEN state='CT' THEN quant ELSE NULL END)
 """)
 
+print("\nTest Case 1")
+run_sql_query("""
+SELECT cust, SUM(quant) AS sum_quant
+FROM sales
+WHERE state = 'NY'
+GROUP BY cust;
+              """)
 
+print("\nTest Case 2")
+run_sql_query("""
+SELECT cust, 
+       SUM(CASE WHEN state = 'NY' THEN quant ELSE 0 END) AS sum_quant_NY,
+       SUM(CASE WHEN state = 'NJ' THEN quant ELSE 0 END) AS sum_quant_NJ
+FROM sales
+GROUP BY cust
+HAVING SUM(CASE WHEN state = 'NY' THEN quant ELSE 0 END) > 
+       SUM(CASE WHEN state = 'NJ' THEN quant ELSE 0 END);
+              """)
+
+print("\nTest Case 3")
 run_sql_query("""
 SELECT cust, prod, SUM(quant) AS sum_quant
 FROM sales
-WHERE year = 2016
+WHERE state = 'NY' AND year = '2020'
+GROUP BY cust, prod;
+              """)
+
+print("\nTest Case 4")
+run_sql_query("""
+SELECT cust,
+       SUM(quant) AS sum_quant,
+       AVG(quant) AS avg_quant,
+       MAX(quant) AS max_quant
+FROM sales
+WHERE prod = 'Butter'
+GROUP BY cust
+HAVING AVG(quant) > 100;""")
+
+print("\nTest Case 5")
+run_sql_query("""
+SELECT cust,
+       SUM(CASE WHEN state = 'NY' AND month = '1' THEN quant ELSE 0 END) AS sum_quant_NY_Jan,
+       SUM(CASE WHEN state = 'NJ' AND month = '2' THEN quant ELSE 0 END) AS sum_quant_NJ_Feb,
+       SUM(CASE WHEN state = 'CT' AND month = '3' THEN quant ELSE 0 END) AS sum_quant_CT_Mar
+FROM sales
+GROUP BY cust
+HAVING (SUM(CASE WHEN state = 'NY' AND month = '1' THEN quant ELSE 0 END) > 
+        SUM(CASE WHEN state = 'NJ' AND month = '2' THEN quant ELSE 0 END) + 
+        SUM(CASE WHEN state = 'CT' AND month = '3' THEN quant ELSE 0 END))
+       OR 
+       (SUM(CASE WHEN state = 'NY' AND month = '1' THEN quant ELSE 0 END) > 1000);
+              """)
+
+print("\nTest Case 6")
+run_sql_query("""
+SELECT cust, prod, SUM(quant) AS sum_quant
+FROM sales
 GROUP BY cust, prod
-HAVING SUM(quant) > 500
-""")
+HAVING SUM(quant) > 500;
+              """)
+
+print("\nTest Case 7")
+run_sql_query("""
+SELECT cust, state, SUM(quant) AS sum_quant
+FROM sales
+WHERE prod = 'Butter' OR prod = 'Ice'
+GROUP BY cust, state
+HAVING SUM(quant) > 300;
+              """)
+
+print("\nTest Case 8")
+run_sql_query("""
+SELECT cust,
+       SUM(CASE WHEN year = '2016' THEN quant ELSE 0 END) AS sum_quant_2016,
+       SUM(CASE WHEN year = '2017' THEN quant ELSE 0 END) AS sum_quant_2017
+FROM sales
+GROUP BY cust
+HAVING SUM(CASE WHEN year = '2017' THEN quant ELSE 0 END) > 
+       SUM(CASE WHEN year = '2016' THEN quant ELSE 0 END);
+              """)

@@ -1,0 +1,11 @@
+SELECT ATTRIBUTE(S):
+cust, prod, 1_sum_quant
+NUMBER OF GROUPING VARIABLES(n):
+1
+GROUPING ATTRIBUTES(V):
+cust, prod
+F-VECT([F]):
+1_sum_quant
+SELECT CONDITION-VECT([σ]):
+1.state='NY' and year=2020
+HAVING_CONDITION(G):

@@ -24,25 +24,25 @@ def query():
     groups = {}
     
     for row in cur:
-        key = (row['state'])
+        key = (row['cust'], row['prod'])
         
         # Check all grouping variable conditions
-        match_1 = row['prod']=='Jelly' and row['year']==2020
+        match_1 = row['state']=='NY' and row['year']==2020
         if key not in groups:
             groups[key] = {
-                'state': row['state'],
-                '1_max_quant': float('-inf')
+                'cust': row['cust'], 'prod': row['prod'],
+                '1_sum_quant': 0
             }
         
         # Update aggregates
-        if match_1: groups[key]['1_max_quant'] = max(groups[key]['1_max_quant'], row['quant'])
+        groups[key]['1_sum_quant'] += row['quant'] if match_1 else 0
     
     # Prepare results
     result = []
     for key, group_data in groups.items():
         result_row = {
-            'state': group_data['state'],
-            'max_quant_jelly': group_data['1_max_quant']
+            'cust': group_data['cust'], 'prod': group_data['prod'],
+            'sum_quant_ny': group_data['1_sum_quant']
         }
         # Apply HAVING clause
         if True:

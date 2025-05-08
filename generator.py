@@ -60,29 +60,37 @@ def generate_mf_body(query):
         if i in sigma:
             condition = sigma[i]
             # Split the condition into individual parts if it contains AND
-            if ' AND ' in condition:
-                sub_conditions = condition.split(' AND ')
-
+            if ' and ' in condition:
+                sub_conditions = condition.split(' and ')
                 processed_conditions = []
                 for sub_condition in sub_conditions:
-                    print(f"Processing sub-condition: {sub_condition}")
                     processed_conditions.append("row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1])
-                    print(f"Processed condition: {processed_conditions}")
                     corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
                 # Combine all sub-conditions with AND
                 combined_condition = " and ".join(processed_conditions)
                 match_conditions.append(f"match_{i} = {combined_condition}")
-                print(match_conditions)
-
+            elif ' or ' in condition:
+                sub_conditions = condition.split(' or ')
+                processed_conditions = []
+                for sub_condition in sub_conditions:
+                    processed_conditions.append("row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1])
+                    corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
+                # Combine all sub-conditions with OR
+                combined_condition = " or ".join(processed_conditions)
+                match_conditions.append(f"match_{i} = {combined_condition}")
+            elif ' not ' in condition:
+                sub_conditions = condition.split(' not ')
+                processed_conditions = []
+                for sub_condition in sub_conditions:
+                    processed_conditions.append("row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1])
+                    corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
+                combined_condition = " not ".join(processed_conditions)
+                match_conditions.append(f"match_{i} = {combined_condition}")
             else:
-                processed_conditions = "row['" + sub_condition.split("=")[0] + "']==" + sub_condition.split("=")[1]
-                corresponding_names.append(sub_condition.split("=")[1].replace("'", "").lower())
+                processed_conditions = "row['" + condition.split("=")[0] + "']==" + condition.split("=")[1]
+                corresponding_names.append(condition.split("=")[1].replace("'", "").lower())
                 match_conditions.append(f"match_{i} = {processed_conditions}")
-                print(match_conditions)
         
-
-
-    
     # Parse all aggregate functions
     aggregates = {}
     for agg in query['f']:
