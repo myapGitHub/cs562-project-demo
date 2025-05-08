@@ -1,11 +1,12 @@
 SELECT ATTRIBUTE(S):
-cust, prod, sum(quant)
+cust, prod, 1_sum_quant
 NUMBER OF GROUPING VARIABLES(n):
-0
+1
 GROUPING ATTRIBUTES(V):
 cust, prod
 F-VECT([F]):
-sum(quant)
+1_sum_quant
 SELECT CONDITION-VECT([σ]):
+1.year=2016
 HAVING_CONDITION(G):
-sum(quant) > 500
+1_sum_quant > 500
